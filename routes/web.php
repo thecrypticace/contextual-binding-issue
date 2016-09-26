@@ -19,7 +19,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/actual/app', function () {
+Route::get('/actual/alias', function () {
     $app = app();
     $app->when(SomeClass::class)
         ->needs(\Psr\Log\LoggerInterface::class)
@@ -40,7 +40,7 @@ Route::get('/actual/app', function () {
 // Container.php:633
 // Changing to: if (isset($this->instances[$abstract]) && is_null($this->getContextualConcrete($abstract))) {
 // resolved this bug
-Route::get('/actual/container', function () {
+Route::get('/actual/instance', function () {
     $app = new Container();
 
     $app->when(SomeClass::class)

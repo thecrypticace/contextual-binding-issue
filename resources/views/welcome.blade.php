@@ -94,8 +94,8 @@
                 </div>
 
                 <div class="links">
-                    <a href="/actual/app">Actual: Instance</a>
-                    <a href="/actual/app">Actual: Instance + Alias</a>
+                    <a href="/actual/instance">Actual: Instance</a>
+                    <a href="/actual/alias">Actual: Instance + Alias</a>
                     <a href="/expected">Expected</a>
                 </div>
             </div>
