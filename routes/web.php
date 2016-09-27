@@ -1,6 +1,7 @@
 <?php
 
 use App\SomeClass;
+use Monolog\Logger;
 use App\SomeClassLogger;
 use Illuminate\Container\Container;
 
@@ -20,7 +21,10 @@ Route::get('/', function () {
 });
 
 Route::get('/actual/alias', function () {
-    $app = app();
+    $app = new Container;
+    $app->instance("log", new Logger("test"));
+    $app->alias("log", \Psr\Log\LoggerInterface::class);
+
     $app->when(SomeClass::class)
         ->needs(\Psr\Log\LoggerInterface::class)
         ->give(SomeClassLogger::class);
@@ -42,12 +46,11 @@ Route::get('/actual/alias', function () {
 // resolved this bug
 Route::get('/actual/instance', function () {
     $app = new Container();
+    $app->instance(\Psr\Log\LoggerInterface::class, new Logger("test"));
 
     $app->when(SomeClass::class)
         ->needs(\Psr\Log\LoggerInterface::class)
         ->give(SomeClassLogger::class);
-
-    $app->instance(\Psr\Log\LoggerInterface::class, app("log"));
 
     $someClass = $app->make(SomeClass::class);
 
