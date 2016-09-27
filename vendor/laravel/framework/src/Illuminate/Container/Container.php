@@ -699,6 +699,28 @@ class Container implements ArrayAccess, ContainerContract
         if (isset($this->contextual[end($this->buildStack)][$abstract])) {
             return $this->contextual[end($this->buildStack)][$abstract];
         }
+
+        // Contextual binding needs to look at the
+        // aliases that resolve to the abstract
+        // otherwise there may be no registered
+        // contextual binding
+
+        // Contextual binding must look through the aliases.
+        // A binding may be registed for something which is:
+        // 1. An alias
+        // 2. Has an instance in the container already
+        // In such situations the abstract gets destroyed
+        // during "make" and the alias is passed into this method
+
+        foreach ($this->aliases as $aliasAbstract => $concrete) {
+            if ($concrete !== $abstract) {
+                continue;
+            }
+
+            if (isset($this->contextual[end($this->buildStack)][$aliasAbstract])) {
+                return $this->contextual[end($this->buildStack)][$aliasAbstract];
+            }
+        }
     }
 
     /**
