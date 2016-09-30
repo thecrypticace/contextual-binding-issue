@@ -113,6 +113,8 @@ class Container implements ArrayAccess, ContainerContract
      */
     protected $afterResolvingCallbacks = [];
 
+    private $debugStack = [];
+
     /**
      * Define a contextual binding.
      *
@@ -627,7 +629,19 @@ class Container implements ArrayAccess, ContainerContract
      */
     public function make($abstract, array $parameters = [])
     {
+        $this->dump("make <-", $abstract);
+
+        if (str_contains(strtolower($abstract), "test")) {
+            $this->debugStack[] = true;
+
+            $_ = $this->scopeExit(function () {
+                array_pop($this->debugStack);
+            });
+        }
+
         $abstract = $this->getAlias($this->normalize($abstract));
+
+        $this->dump("aliased <->", $abstract);
 
         $requiresContextualBuild = ! is_null($this->getContextualConcrete($abstract));
 
@@ -635,6 +649,8 @@ class Container implements ArrayAccess, ContainerContract
         // just return an existing instance instead of instantiating new instances
         // so the developer can keep using the same objects instance every time.
         if (isset($this->instances[$abstract]) && ! $requiresContextualBuild) {
+            $this->dump("returning direct instance", $this->instances[$abstract]);
+
             return $this->instances[$abstract];
         }
 
@@ -660,12 +676,16 @@ class Container implements ArrayAccess, ContainerContract
         // the instances in "memory" so we can return it later without creating an
         // entirely new instance of an object on each subsequent request for it.
         if ($this->isShared($abstract) && ! $requiresContextualBuild) {
+            $this->dump("registering shared instance", $abstract, $object);
+
             $this->instances[$abstract] = $object;
         }
 
         $this->fireResolvingCallbacks($abstract, $object);
 
         $this->resolved[$abstract] = true;
+
+        $this->dump("make ->", $object);
 
         return $object;
     }
@@ -801,6 +821,8 @@ class Container implements ArrayAccess, ContainerContract
             $dependencies, $parameters
         );
 
+        $this->dump("build: {$concrete}");
+
         $instances = $this->getDependencies(
             $dependencies, $parameters
         );
@@ -832,7 +854,9 @@ class Container implements ArrayAccess, ContainerContract
             } elseif (is_null($dependency)) {
                 $dependencies[] = $this->resolveNonClass($parameter);
             } else {
+                $this->dump("getDependencies: {$dependency->name}");
                 $dependencies[] = $this->resolveClass($parameter);
+                $this->dump("getDependencies ->: " . get_class(end($dependencies)));
             }
         }
 
@@ -876,6 +900,8 @@ class Container implements ArrayAccess, ContainerContract
      */
     protected function resolveClass(ReflectionParameter $parameter)
     {
+        $this->dump("resolveClass: {$parameter->getClass()->name}");
+
         try {
             return $this->make($parameter->getClass()->name);
         }
@@ -1269,5 +1295,28 @@ class Container implements ArrayAccess, ContainerContract
     public function __set($key, $value)
     {
         $this[$key] = $value;
+    }
+
+    private function dump(...$args)
+    {
+        if (empty($this->debugStack)) {
+            return;
+        }
+
+        $debug = end($this->debugStack);
+
+        if (! $debug) {
+            return;
+        }
+
+        dump(...$args);
+    }
+
+    private function scopeExit($callback)
+    {
+        return new class ($callback) {
+            function __construct($callback) { $this->callback = $callback; }
+            function __destruct() { ($this->callback)(); }
+        };
     }
 }
